@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mystery Autobahn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@600;700&display=swap">
+<style>
+/* Layout: Kopfband mit Leitfrage, darunter eine große Arbeitsfläche, auf der die Karten per Pfeil verbunden werden. */
+:root {
+  --bg: #F5F7FC;
+  --surface: #FFFFFF;
+  --ink: #1E2233;
+  --muted: #5B6270;
+  --navy: #1E2761;
+  --head-bg: #141B47;
+  --head-ink: #FFFFFF;
+  --head-muted: #CADCFC;
+  --gold: #C9A24B;
+  --gold-soft: #FFF7E6;
+  --gold-ink: #7A5F17;
+  --line: #C9CFE0;
+  --dot: #DDE2F0;
+  --card: #FFFFFF;
+  --edge: #1E2761;
+  --edge-sel: #B8861B;
+  --ok: #3B7A57;
+  --warn: #8B1E2F;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-head: "Source Serif 4", Cambria, Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1230; --surface: #171D4A; --ink: #E8EBF7; --muted: #A7AECB;
+    --head-bg: #0A0E27; --gold: #D9B15A; --gold-soft: #2B2A1E; --gold-ink: #E8CD86;
+    --line: #333B73; --dot: #232A5C; --card: #1F2759; --edge: #CADCFC; --edge-sel: #F0C463;
+    --ok: #6CC391; --warn: #F08A9A; --navy: #CADCFC;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1230; --surface: #171D4A; --ink: #E8EBF7; --muted: #A7AECB;
+  --head-bg: #0A0E27; --gold: #D9B15A; --gold-soft: #2B2A1E; --gold-ink: #E8CD86;
+  --line: #333B73; --dot: #232A5C; --card: #1F2759; --edge: #CADCFC; --edge-sel: #F0C463;
+  --ok: #6CC391; --warn: #F08A9A; --navy: #CADCFC;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 40px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; }
+header.top {
+  background: var(--head-bg); color: var(--head-ink);
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 28px max(16px, env(safe-area-inset-left, 0px)) 26px;
+  border-bottom: 4px solid var(--gold);
+}
+header.top .inner { max-width: 1240px; margin: 0 auto; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); font-weight: 600; margin: 0 0 6px; }
+h1 { font-family: var(--font-head); font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0 0 14px; text-wrap: balance; }
+.question { background: rgba(255,255,255,.08); border: 1px solid rgba(202,220,252,.35); border-radius: 10px; padding: 14px 18px; max-width: 880px; }
+.question b { display: block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+.question p { margin: 0; font-family: var(--font-head); font-size: clamp(17px, 2.2vw, 21px); line-height: 1.35; color: var(--head-ink); }
+.claim { max-width: 880px; margin: 0 0 12px; padding: 12px 18px; border-left: 4px solid var(--gold); background: rgba(255,255,255,.05); }
+.claim b { display: block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--head-muted); margin-bottom: 4px; }
+.claim p { margin: 0; font-family: var(--font-head); font-style: italic; font-size: clamp(16px, 2vw, 19px); color: var(--head-ink); }
+section { margin-top: 22px; }
+h2 { font-family: var(--font-head); font-size: 20px; color: var(--navy); margin: 0 0 8px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.steps li b { color: var(--navy); }
+.names { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
+label.field { display: block; font-size: 13px; color: var(--muted); font-weight: 500; }
+input[type=text], textarea {
+  width: 100%; margin-top: 4px; padding: 9px 11px; font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px;
+}
+input[type=text]:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-bottom: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--ink); font: inherit; font-weight: 500; padding: 9px 16px; cursor: pointer; min-height: 40px; }
+.seg button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { color: #0E1230; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button[aria-pressed="true"] { color: #0E1230; } }
+.btn { font: inherit; font-weight: 600; border: 1px solid var(--navy); background: var(--navy); color: #fff; padding: 9px 16px; border-radius: 10px; cursor: pointer; min-height: 40px; }
+:root[data-theme="dark"] .btn { color: #0E1230; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn { color: #0E1230; } }
+.btn.ghost { background: transparent; color: var(--navy); border-color: var(--line); }
+:root[data-theme="dark"] .btn.ghost { color: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.ghost { color: var(--ink); } }
+.btn.warn { background: transparent; color: var(--warn); border-color: var(--warn); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; flex: 1 1 260px; }
+.counter { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.boardbox { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow-x: auto; overflow-y: hidden; }
+.spacer { position: relative; }
+.world {
+  position: absolute; left: 0; top: 0; width: 1200px; height: 1100px; transform-origin: 0 0;
+  background-image: radial-gradient(var(--dot) 1.4px, transparent 1.5px); background-size: 28px 28px;
+}
+.world > svg { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.card {
+  position: absolute; width: 220px; padding: 10px 12px 8px; background: var(--card); color: var(--ink);
+  border: 1.5px solid var(--line); border-top: 4px solid var(--gold); border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(20,27,71,.14); font-size: 12.5px; line-height: 1.4; user-select: none; -webkit-user-select: none;
+}
+.card[data-typ="bild"] { border-top-color: var(--warn); }
+.card[data-typ="statistik"] { border-top-color: var(--ok); }
+.card[data-typ="darstellung"] { border-top-color: var(--edge); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); margin: 0 0 8px; }
+.legend i { display: inline-block; width: 22px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.card.dim { opacity: .45; }
+.card.interactive { touch-action: none; cursor: grab; }
+.card.drag { cursor: grabbing; box-shadow: 0 8px 18px rgba(20,27,71,.28); }
+.card.src { border-color: var(--edge-sel); box-shadow: 0 0 0 3px var(--edge-sel); }
+.card.connect { cursor: pointer; }
+.card h3 { font-size: 13px; margin: 0 0 3px; color: var(--navy); font-weight: 600; }
+.card p { margin: 0; }
+.fig { margin: 8px 0 0; } .fig img { display: block; width: 100%; max-height: 130px; object-fit: cover; border-radius: 4px; -webkit-user-drag: none; } .fig figcaption { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+.vizbox { margin-top: 6px; } .viz { display: block; width: 100%; height: auto; } .viz text { font-size: 9px; fill: var(--muted); font-family: var(--font-body); } .vnote { display: block; font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+.card .ref { display: block; margin-top: 5px; font-size: 10.5px; color: var(--muted); line-height: 1.35; }
+.card .ref b { color: var(--navy); font-weight: 600; }
+.card .ask { margin: 6px 0 0; font-style: italic; color: var(--gold-ink); }
+.card h3 { padding-right: 26px; }
+.card:not(.interactive).key h3 { padding-right: 66px; }
+.star { position: absolute; top: 4px; right: 5px; width: 26px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; touch-action: manipulation; }
+.star[aria-pressed="true"] { background: var(--gold); color: #1E2233; border-color: var(--gold); }
+.card.key { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); background: var(--gold-soft); }
+.badge { position: absolute; top: 5px; right: 6px; font-size: 10.5px; font-weight: 600; color: var(--gold-ink); }
+.elabel {
+  position: absolute; transform: translate(-50%, -50%); max-width: 190px; padding: 3px 9px; font-size: 12px; font-weight: 600;
+  background: var(--gold-soft); color: var(--gold-ink); border: 1.5px solid var(--gold); border-radius: 999px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; z-index: 3000;
+}
+.elabel.btnlike { cursor: pointer; }
+.linking .elabel { pointer-events: none; }
+.elabel.empty { min-width: 26px; text-align: center; opacity: .85; }
+.elabel.sel { background: var(--edge-sel); color: #1E2233; border-color: var(--edge-sel); }
+.editor { margin-top: 12px; background: var(--gold-soft); border: 1.5px solid var(--gold); border-radius: 12px; padding: 14px 16px; }
+.editor h3 { margin: 0 0 8px; font-size: 15px; color: var(--gold-ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 10px; }
+.chip { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--gold); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 36px; }
+.chip:hover { background: var(--gold); color: #1E2233; }
+.editor .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.check { list-style: none; margin: 10px 0 0; padding: 0; font-size: 14px; display: grid; gap: 4px; }
+.check li::before { content: "○ "; color: var(--muted); }
+.check li.ok::before { content: "● "; color: var(--ok); }
+.check li.ok { color: var(--ok); }
+textarea { min-height: 150px; resize: vertical; line-height: 1.5; }
+.notice { display: none; background: var(--gold-soft); border: 1px solid var(--gold); color: var(--gold-ink); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
+@media (max-width: 760px) { .notice { display: block; } }
+.result { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px max(16px, 3vw) 22px; }
+.result .meta { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; margin: 6px 0 14px; }
+.result .meta span b { color: var(--navy); }
+.result .answer { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 12px 0 0; }
+.result .stamp { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.shotnote { background: var(--gold-soft); border: 1.5px solid var(--gold); border-radius: 10px; padding: 10px 14px; color: var(--gold-ink); font-weight: 600; margin-bottom: 14px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="top"><div class="inner">
+  <p class="eyebrow">Zusatzkurs Geschichte Q2 · NS-Wirtschaftspolitik</p>
+  <h1>Hitler und die Autobahnen</h1>
+  <div class="claim"><b>Behauptung, die bis heute zu hören ist</b><p>„Hitler hat die Autobahnen gebaut und damit die Arbeitslosigkeit beseitigt.“</p></div>
+  <div class="question"><b>Leitfrage</b><p>War die Reichsautobahn der Motor gegen die Arbeitslosigkeit – oder vor allem ein Propagandabild?</p></div>
+</div></header>
+
+<div id="editView">
+  <section>
+    <h2>So arbeitet ihr</h2>
+    <ol class="steps">
+      <li><b>1 · Lesen.</b> Jede Karte nennt ihren Typ und ihre Herkunft: Quelle aus der Zeit, spätere Darstellung, Statistik oder Bild. Nicht alle Karten sind gleich wichtig.</li>
+      <li><b>2 · Ordnen und verbinden.</b> Schiebt die Karten zusammen. Verbindet sie mit Pfeilen und schreibt an jeden Pfeil, wie sie zusammenhängen (zum Beispiel „stützt“ oder „widerspricht“ der Behauptung).</li>
+      <li><b>3 · Gewichten.</b> Markiert mit ★ die drei Karten, die für eure Antwort am wichtigsten sind, und begründet eure Auswahl.</li>
+      <li><b>4 · Beurteilen.</b> Beurteilt die Leitfrage. Ordnet mindestens eine Karte als Propaganda ein und begründet das. Am Ende macht ihr einen Screenshot der Ergebnisseite.</li>
+    </ol>
+    <div class="names">
+      <label class="field" for="n1">Name 1<input id="n1" type="text" autocomplete="off" maxlength="40"></label>
+      <label class="field" for="n2">Name 2<input id="n2" type="text" autocomplete="off" maxlength="40"></label>
+      <label class="field" for="n3">Name 3 (falls vorhanden)<input id="n3" type="text" autocomplete="off" maxlength="40"></label>
+      <label class="field" for="n4">Name 4 (falls vorhanden)<input id="n4" type="text" autocomplete="off" maxlength="40"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Eure Arbeitsfläche</h2>
+    <div class="notice">Diese Aufgabe geht am besten auf Tablet oder Laptop. Auf dem Handy bitte im Querformat arbeiten und die Fläche seitlich wischen.</div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Modus">
+        <button type="button" id="modeMove" aria-pressed="true">Karten verschieben</button>
+        <button type="button" id="modeLink" aria-pressed="false">Karten verbinden</button>
+      </div>
+      <button type="button" class="btn ghost" id="shuffle">Karten neu auslegen</button>
+      <button type="button" class="btn warn" id="resetAll">Alles zurücksetzen</button>
+      <span class="counter" id="counter"></span>
+    </div>
+    <p class="legend"><span><i style="background:var(--warn)"></i>Bild oder Quelle aus der Zeit</span><span><i style="background:var(--edge)"></i>Darstellung</span><span><i style="background:var(--ok)"></i>Statistik</span></p>
+    <p class="hint" id="hint" style="margin-bottom:10px"></p>
+    <div class="boardbox" id="boardOuter"></div>
+
+    <div class="editor" id="editor" hidden>
+      <h3 id="edTitle">Beziehung</h3>
+      <label class="field" for="edText">Wie hängen die beiden Karten zusammen?
+        <input id="edText" type="text" maxlength="40" autocomplete="off" placeholder="z. B. führt zu, weil, widerspricht …">
+      </label>
+      <div class="chips" id="chips"></div>
+      <div class="row">
+        <button type="button" class="btn" id="edDone">Fertig</button>
+        <button type="button" class="btn ghost" id="edFlip">Richtung umdrehen</button>
+        <button type="button" class="btn warn" id="edDelete">Pfeil löschen</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Eure Antwort auf die Leitfrage</h2>
+    <label class="field" for="weigh">Gewichtung: Warum sind eure drei ★-Karten die wichtigsten? (mindestens zwei Sätze)
+      <textarea id="weigh" style="min-height:90px" placeholder="Wir haben diese drei Karten gewählt, weil …"></textarea>
+    </label>
+    <label class="field" for="answer" style="margin-top:14px">Beurteilung: Nennt mindestens zwei Karten mit ihrer Überschrift und ordnet eine Karte als Propaganda ein.
+      <textarea id="answer" placeholder="Wir beurteilen die Leitfrage so: …"></textarea>
+    </label>
+    <ul class="check" id="check"></ul>
+    <div class="toolbar" style="margin-top:14px">
+      <button type="button" class="btn" id="finish" disabled>Ergebnisseite öffnen</button>
+      <span class="hint" id="finishHint"></span>
+    </div>
+  </section>
+</div>
+
+<p class="hint" id="credit" hidden style="margin-top:18px">Bildnachweis: Von Bundesarchiv, Bild 183-R27373 / CC-BY-SA 3.0, <a href="https://creativecommons.org/licenses/by-sa/3.0/de/deed.en" title="Creative Commons Attribution-Share Alike 3.0 de" target="_blank" rel="noopener">CC BY-SA 3.0 de</a>, <a href="https://commons.wikimedia.org/w/index.php?curid=5436396" target="_blank" rel="noopener">Link</a></p>
+<div id="resultView" hidden>
+  <section>
+    <div class="shotnote">Macht jetzt einen Screenshot der gesamten Seite und gebt ihn ab. Alles muss lesbar sein.</div>
+    <div class="result">
+      <p class="eyebrow">Mystery · Hitler und die Autobahnen</p>
+      <h2 style="margin:0">Ergebnis</h2>
+      <div class="meta"><span><b>Gruppe:</b> <span id="rNames"></span></span><span><b>Pfeile:</b> <span id="rEdges"></span></span></div>
+      <div class="boardbox" id="resultBoardOuter" style="overflow:hidden"></div>
+      <p style="margin:16px 0 4px;font-weight:600;color:var(--navy)">Unsere drei wichtigsten Karten (★) und warum</p>
+      <div class="answer" id="rWeigh"></div>
+      <p style="margin:16px 0 4px;font-weight:600;color:var(--navy)">Unsere Beurteilung der Leitfrage</p>
+      <div class="answer" id="rAnswer"></div>
+      <p class="stamp" id="rStamp"></p>
+    </div>
+    <div class="toolbar" style="margin-top:14px">
+      <button type="button" class="btn ghost" id="back">Zurück zum Bearbeiten</button>
+    </div>
+  </section>
+</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // Einstellungen für die Lehrkraft
+  var MIN_EDGES = 8, MIN_LABELED = 5, MIN_ANSWER = 200;
+  var W = 1200, H = 1100, CW = 220, NS = "http://www.w3.org/2000/svg";
+  var STORE = "mystery-autobahn-v3", MIN_WEIGH = 80, NKEY = 3;
+
+
+  function lineChart(xs, series, ymax, w, h, opts) {
+    var L = 24, R = 16, T = 16, B = 16, pw = w - L - R, ph = h - T - B, out = '';
+    function X(i) { return L + pw * i / (xs.length - 1); }
+    function Y(v) { return T + ph * (1 - v / ymax); }
+    [0, ymax / 2, ymax].forEach(function (g) {
+      out += '<line x1="' + L + '" x2="' + (w - R) + '" y1="' + Y(g) + '" y2="' + Y(g) + '" style="stroke:var(--line);stroke-width:1"/>' +
+        '<text x="' + (L - 3) + '" y="' + (Y(g) + 3) + '" text-anchor="end">' + Math.round(g) + '</text>';
+    });
+    xs.forEach(function (x, i) { if (i === 0 || i === xs.length - 1 || (opts && opts.mid === i)) out += '<text x="' + X(i) + '" y="' + (h - 3) + '" text-anchor="' + (i === xs.length - 1 ? 'end' : i === 0 ? 'start' : 'middle') + '">' + x + '</text>'; });
+    series.forEach(function (sr) {
+      var pts = sr.v.map(function (v, i) { return X(i).toFixed(1) + ',' + Y(v).toFixed(1); }).join(' ');
+      out += '<polyline points="' + pts + '" fill="none" style="stroke:' + sr.c + ';stroke-width:2"/>';
+      (sr.mark || []).forEach(function (i) {
+        out += '<circle cx="' + X(i) + '" cy="' + Y(sr.v[i]) + '" r="2.6" style="fill:' + sr.c + '"/>' +
+          '<text x="' + X(i) + '" y="' + (Y(sr.v[i]) - 5) + '" text-anchor="middle" style="font-weight:600">' + String(sr.v[i]).replace('.', ',') + '</text>';
+      });
+    });
+    return '<svg class="viz" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + ((opts && opts.alt) || 'Diagramm') + '">' + out + '</svg>';
+  }
+  function barViz(frac, leftLabel, rightLabel, w) {
+    var bw = w - 4, fw = Math.max(2, bw * frac);
+    return '<svg class="viz" viewBox="0 0 ' + w + ' 56" role="img" aria-label="' + leftLabel + ' ' + rightLabel + '">' +
+      '<rect x="2" y="22" width="' + bw + '" height="16" rx="3" style="fill:var(--dot);stroke:var(--line)"/>' +
+      '<rect x="2" y="22" width="' + fw.toFixed(1) + '" height="16" rx="3" style="fill:var(--edge-sel)"/>' +
+      '<text x="2" y="14" style="font-weight:600">' + leftLabel + '</text>' +
+      '<text x="' + (w - 2) + '" y="52" text-anchor="end">' + rightLabel + '</text></svg>';
+  }
+  function barsViz(items, max, w) {
+    var out = '', y = 0, bw = 112;
+    items.forEach(function (it) {
+      out += '<text x="2" y="' + (y + 9) + '">' + it.l + '</text>' +
+        '<rect x="2" y="' + (y + 12) + '" width="' + Math.max(2, bw * it.v / max).toFixed(1) + '" height="9" rx="2" style="fill:' + (it.c || 'var(--edge-sel)') + '"/>' +
+        '<text x="' + (Math.max(2, bw * it.v / max) + 6).toFixed(1) + '" y="' + (y + 21) + '" style="font-weight:600">' + it.t + '</text>';
+      y += 25;
+    });
+    return '<svg class="viz" viewBox="0 0 ' + w + ' ' + y + '" role="img" aria-label="Balkendiagramm">' + out + '</svg>';
+  }
+  var VIZ = {
+    k6: barViz(120000 / 1600000, "120.000 am Autobahnbau", "Ganzer Balken = 1,6 Mio. Arbeitslose (Ø 1936)", 196),
+    k7: barViz(3800 / 6900, "rund 3.800 km bis 1945 gebaut", "Ganzer Balken = 6.900 km geplant", 196),
+    k9: barsViz([{ l: "1933", v: 4.8, t: "4,8 Mio." }, { l: "1934", v: 2.7, t: "2,7 Mio." }, { l: "1936", v: 1.6, t: "1,6 Mio." }, { l: "1937", v: 0.95, t: "unter 1 Mio." }], 4.8, 196),
+    k10: barsViz([{ l: "Rüstung 1933 (ein Jahr)", v: 0.72, t: "0,72", c: "var(--edge)" }, { l: "Rüstung 1937 (ein Jahr)", v: 10.8, t: "10,8", c: "var(--edge)" }, { l: "Arbeitsbeschaffung seit 1933 (zusammen)", v: 6, t: "ca. 6" }], 10.8, 196)
+  };
+  var VIZ_NOTE = { k6: "Personen", k9: "Arbeitslose im Jahresdurchschnitt", k10: "in Mrd. Reichsmark (RM)" };
+  var CARDS = [
+    { id: "k1", h: "Hitler schaufelt Sand", t: "Der Spatenstich am 23. September 1933 bei Frankfurt. Viele uniformierte Männer sehen zu.", typ: "Bild", src: "Bundesarchiv, Bild 183-R27373", img: "spatenstich.jpg", imgAlt: "Hitler beim ersten Spatenstich für die Reichsautobahn bei Frankfurt, 1933", imgCap: "Bundesarchiv, Bild 183-R27373 / CC-BY-SA 3.0" },
+    { id: "k2", h: "„Gigantisches Werk“", t: "„Am 23. September 1933 hat Adolf Hitler den ersten Spatenstich zu dem gigantischen Werk der Reichsautobahnen …“", typ: "Quelle von 1933, gekürzt", src: "Bundesarchiv, Bild 183-2004-1004-501" },
+    { id: "k3", h: "„Hitler = Krieg“", t: "Am Vortag schrieben Ludwig Gehm und andere ISK-Mitglieder diese Parole auf die Fahrbahn. Zur Feier wurde sie notdürftig überdeckt.", typ: "Darstellung", src: "Bundesarchiv, Geschichtsgalerie „Gründungsakt des Reichsautobahnbaus“" },
+    { id: "k4", h: "Längst geplant", t: "Die Autobahnpläne stammen aus den 1920er-Jahren. Im Mai 1933 stellte Hitler sie als sein Programm vor.", typ: "Darstellung", src: "DHM, LeMO „Die Reichsautobahnen“" },
+    { id: "k5", h: "„Straßen des Führers“", t: "So wurden die Autobahnen genannt. Sie sollten Fortschritt und Weitsicht zeigen.", typ: "Darstellung", src: "DHM, LeMO „Die Reichsautobahnen“" },
+    { id: "k6", h: "Wenige Arbeiter", t: "Höchststand 1936: rund 120.000 am Bau. Arbeitslose im Schnitt 1936: 1,6 Mio.", typ: "Statistik", src: "DHM, LeMO; bpb, Thamer 2005" },
+    { id: "k7", h: "Langsamer Bau", t: "Erst im Mai 1935 war das erste Stück fertig.", typ: "Statistik", src: "DHM, LeMO „Die Reichsautobahnen“" },
+    { id: "k8", h: "Bezahlt von Arbeitslosen-Beiträgen", t: "Den Bau zahlte größtenteils die Reichsanstalt für Arbeitsvermittlung und Arbeitslosenversicherung.", typ: "Darstellung", src: "DHM, LeMO „Die Reichsautobahnen“" },
+    { id: "k9", h: "Arbeitslose pro Jahr", t: "Im Januar gab es rund 6 Mio. Arbeitslose (auch saisonbedingt). Die Jahreszahl sank danach stark.", typ: "Statistik", src: "bpb, Thamer 2005" },
+    { id: "k10", h: "Mehr Geld für Waffen", t: "Die Rüstung wurde viel größer als alle Arbeitsbeschaffung zusammen.", typ: "Statistik", src: "bpb, Thamer 2005; Werte gerundet" },
+    { id: "k11", h: "Versteckte Schulden", t: "1934 bis 1936 zahlte der Staat etwa die Hälfte der Wehrmachtsaufträge mit Mefo-Wechseln. Sie tauchten nicht unter den Rüstungsausgaben auf.", typ: "Darstellung", src: "bpb, Thamer 2005" },
+    { id: "k12", h: "1935: Pflichtdienste", t: "Der halbjährige Arbeitsdienst wurde Pflicht, die allgemeine Wehrpflicht eingeführt.", typ: "Darstellung", src: "DHM, LeMO; bpb, Thamer 2005", q: "Was heißt das für die Zahl der Arbeitslosen?" },
+    { id: "k13", h: "Zwang auf der Baustelle", t: "Arbeitslose Kommunisten und Sozialdemokraten wurden auf die Baustellen gezwungen. Ab dem 24. September 1933 drohte das Arbeitsamt, die Unterstützung zu streichen.", typ: "Darstellung (Interview)", src: "taz, 22.09.2023, Conrad Kunze" },
+    { id: "k14", h: "Der Mythos lebt", t: "„Die Nazi-Propaganda wirkt fort.“ Der Historiker Conrad Kunze nennt den Autobahn-Mythos wiederholte NS-Propaganda.", typ: "Darstellung (Interview)", src: "taz, 22.09.2023, Conrad Kunze" },
+    { id: "k15", h: "Streit um die Idee", t: "Das DHM nennt Pläne aus den 1920ern. Kunze meint: In der Weimarer Republik hätte man die Autobahn nicht bauen können, weil Enteignungen und Vorrang vor anderer Planung fehlten.", typ: "Darstellung (zwei Meinungen)", src: "DHM, LeMO; taz, 22.09.2023" }
+  ];
+  var CHIPS = ["führt zu", "weil", "stützt", "widerspricht", "relativiert", "verschleiert", "dient als Beleg für"];
+  var cardById = {}; CARDS.forEach(function (c) { cardById[c.id] = c; });
+
+  var focusId = null, state = null, mode = "move", linkSrc = null, selEdge = null, zTop = 10;
+  var boards = [];
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  function gridPositions(shuffle) {
+    var ids = CARDS.map(function (c) { return c.id; });
+    if (shuffle) { for (var i = ids.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = ids[i]; ids[i] = ids[j]; ids[j] = t; } }
+    var pos = {};
+    ids.forEach(function (id, k) { pos[id] = { x: 14 + (k % 5) * 238, y: 14 + Math.floor(k / 5) * 345 }; });
+    return pos;
+  }
+  function freshState() {
+    var pos = gridPositions(true);
+    return { pos: pos, edges: [], nextId: 1, names: ["", "", "", ""], answer: "", weigh: "", key: [] };
+  }
+  function load() {
+    try {
+      var s = JSON.parse(localStorage.getItem(STORE));
+      if (s && s.pos && s.edges && CARDS.every(function (c) { return s.pos[c.id]; })) { s.key = s.key || []; s.weigh = s.weigh || ""; return s; }
+    } catch (e) {}
+    return null;
+  }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+
+  // ---------- Arbeitsfläche ----------
+  function createBoard(outer, interactive) {
+    var spacer = el("div", "spacer"), world = el("div", "world");
+    var svg = document.createElementNS(NS, "svg"); svg.setAttribute("width", W); svg.setAttribute("height", H);
+    var uid = interactive ? "w" : "r";
+    svg.innerHTML = '<defs>' +
+      '<marker id="mk-' + uid + '-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--edge)"/></marker>' +
+      '<marker id="mk-' + uid + '-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--edge-sel)"/></marker></defs><g class="lines"></g>';
+    world.appendChild(svg); spacer.appendChild(world); outer.innerHTML = ""; outer.appendChild(spacer);
+    var linesG = svg.querySelector(".lines");
+    var cardEls = {}, labelEls = {}, scale = 1, drag = null;
+
+    function fit() {
+      var w = outer.clientWidth || W;
+      scale = interactive ? Math.max(0.55, Math.min(1.15, w / W)) : Math.min(1.15, w / W);
+      spacer.style.width = (W * scale) + "px"; spacer.style.height = (H * scale) + "px";
+      world.style.transform = "scale(" + scale + ")";
+      if (!interactive) outer.style.height = (H * scale) + "px";
+    }
+    function buildCards() {
+      Object.keys(cardEls).forEach(function (k) { cardEls[k].remove(); }); cardEls = {};
+      CARDS.forEach(function (c) {
+        var d = el("div", "card" + (interactive ? " interactive" : "")); d.setAttribute("data-typ", /^(Bild|Quelle)/.test(c.typ) ? "bild" : /^Statistik/.test(c.typ) ? "statistik" : "darstellung");
+        d.appendChild(el("h3", null, c.h)); d.appendChild(el("p", null, c.t));
+        if (c.q) d.appendChild(el("p", "ask", c.q));
+        if (c.img) {
+          var fig = el("figure", "fig"), im = el("img"); im.src = c.img; im.alt = c.imgAlt || ""; im.draggable = false; im.addEventListener("error", function () { fig.remove(); layout(); });
+          im.addEventListener("load", function () { var cr = document.getElementById("credit"); if (cr) cr.hidden = false; layout(); });
+          fig.appendChild(im); fig.appendChild(el("figcaption", null, c.imgCap)); d.appendChild(fig);
+        }
+        if (VIZ[c.id]) { var vz = el("div", "vizbox"); vz.innerHTML = VIZ[c.id]; if (VIZ_NOTE[c.id]) vz.appendChild(el("span", "vnote", VIZ_NOTE[c.id])); d.appendChild(vz); } var rf = el("span", "ref"); var b1 = el("b", null, "Typ: "); rf.appendChild(b1); rf.appendChild(document.createTextNode(c.typ)); rf.appendChild(document.createElement("br"));
+        var b2 = el("b", null, "Herkunft: "); rf.appendChild(b2); rf.appendChild(document.createTextNode(c.src)); d.appendChild(rf);
+        if (state.key.indexOf(c.id) >= 0) d.classList.add("key");
+        if (interactive) {
+          var st = el("button", "star", "★"); st.type = "button"; st.title = "Als wichtigste Karte markieren"; st.setAttribute("aria-label", "Karte „" + c.h + "“ als wichtig markieren");
+          st.setAttribute("aria-pressed", String(state.key.indexOf(c.id) >= 0));
+          st.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+          st.addEventListener("click", function (e) { e.stopPropagation(); toggleKey(c.id); });
+          d.appendChild(st);
+        } else if (state.key.indexOf(c.id) >= 0) { d.appendChild(el("span", "badge", "★ wichtig")); }
+        var p = state.pos[c.id]; d.style.left = p.x + "px"; d.style.top = p.y + "px";
+        world.appendChild(d); cardEls[c.id] = d;
+        if (interactive) wireCard(d, c.id);
+      });
+    }
+    function wireCard(d, id) {
+      d.addEventListener("pointerdown", function (e) {
+        if (mode !== "move") return;
+        drag = { id: id, sx: e.clientX, sy: e.clientY, ox: state.pos[id].x, oy: state.pos[id].y, pid: e.pointerId };
+        d.setPointerCapture(e.pointerId); d.classList.add("drag"); d.style.zIndex = ++zTop; e.preventDefault();
+      });
+      d.addEventListener("pointermove", function (e) {
+        if (!drag || drag.id !== id || drag.pid !== e.pointerId) return;
+        var x = drag.ox + (e.clientX - drag.sx) / scale, y = drag.oy + (e.clientY - drag.sy) / scale;
+        x = Math.max(0, Math.min(W - CW, x)); y = Math.max(0, Math.min(H - d.offsetHeight, y));
+        state.pos[id] = { x: x, y: y }; d.style.left = x + "px"; d.style.top = y + "px"; layout();
+      });
+      function end(e) {
+        if (!drag || drag.id !== id) return;
+        var moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 6;
+        if (moved) { var q = state.pos[id]; q.x = Math.max(0, Math.min(W - CW, Math.round(q.x / 14) * 14)); q.y = Math.max(0, Math.min(H - d.offsetHeight, Math.round(q.y / 14) * 14)); d.style.left = q.x + "px"; d.style.top = q.y + "px"; }
+        else { focusId = (focusId === id) ? null : id; }
+        drag = null; d.classList.remove("drag"); save(); refreshAll(true); applyFocus();
+      }
+      d.addEventListener("pointerup", end); d.addEventListener("pointercancel", end);
+      d.addEventListener("click", function () {
+        if (mode !== "link") return;
+        if (!linkSrc) { linkSrc = id; markSrc(); hint(); return; }
+        if (linkSrc === id) { linkSrc = null; markSrc(); hint(); return; }
+        var a = linkSrc, b = id; linkSrc = null;
+        var ex = state.edges.filter(function (g) { return (g.a === a && g.b === b) || (g.a === b && g.b === a); })[0];
+        if (!ex) { ex = { id: state.nextId++, a: a, b: b, label: "" }; state.edges.push(ex); save(); }
+        selEdge = ex.id; markSrc(); refreshAll(false); openEditor(); hint();
+      });
+    }
+    function applyFocus() {
+      Object.keys(cardEls).forEach(function (k) {
+        var rel = !focusId || !interactive || k === focusId || state.edges.some(function (g) { return (g.a === focusId && g.b === k) || (g.b === focusId && g.a === k); });
+        cardEls[k].classList.toggle("dim", !rel);
+      });
+      layout();
+    }
+    function markSrc() { Object.keys(cardEls).forEach(function (k) { cardEls[k].classList.toggle("src", interactive && linkSrc === k); cardEls[k].classList.toggle("connect", interactive && mode === "link"); }); }
+    function buildEdges() {
+      Object.keys(labelEls).forEach(function (k) { labelEls[k].remove(); }); labelEls = {};
+      state.edges.forEach(function (g) {
+        if (!interactive && !g.label) return;
+        var l = el("div", "elabel" + (g.label ? "" : " empty") + (interactive ? " btnlike" : ""), g.label || "+");
+        l.title = g.label || "Beziehung beschriften";
+        if (interactive) l.addEventListener("click", function () { selEdge = g.id; refreshAll(false); openEditor(); });
+        world.appendChild(l); labelEls[g.id] = l;
+      });
+    }
+    function layout() {
+      linesG.innerHTML = "";
+      state.edges.forEach(function (g) {
+        var A = cardEls[g.a], B = cardEls[g.b]; if (!A || !B) return;
+        var pa = state.pos[g.a], pb = state.pos[g.b];
+        var ca = { x: pa.x + CW / 2, y: pa.y + A.offsetHeight / 2 }, cb = { x: pb.x + CW / 2, y: pb.y + B.offsetHeight / 2 };
+        var dx = cb.x - ca.x, dy = cb.y - ca.y; if (!dx && !dy) dy = 1;
+        function cut(c, hw, hh, sgn) {
+          var tx = dx ? hw / Math.abs(dx) : Infinity, ty = dy ? hh / Math.abs(dy) : Infinity, t = Math.min(tx, ty);
+          return { x: c.x + sgn * dx * t, y: c.y + sgn * dy * t };
+        }
+        var s = cut(ca, CW / 2 + 3, A.offsetHeight / 2 + 3, 1), e = cut(cb, CW / 2 + 6, B.offsetHeight / 2 + 6, -1);
+        var sel = interactive && selEdge === g.id;
+        var ln = document.createElementNS(NS, "line");
+        ln.setAttribute("x1", s.x); ln.setAttribute("y1", s.y); ln.setAttribute("x2", e.x); ln.setAttribute("y2", e.y);
+        ln.setAttribute("style", "stroke:" + (sel ? "var(--edge-sel)" : "var(--edge)") + ";stroke-width:" + (sel ? 3.5 : 2.5));
+        var dimE = interactive && focusId && g.a !== focusId && g.b !== focusId; ln.setAttribute("opacity", dimE ? 0.18 : 1);
+        ln.setAttribute("marker-end", "url(#mk-" + uid + "-" + (sel ? "s" : "n") + ")");
+        linesG.appendChild(ln);
+        var L = labelEls[g.id]; if (L) {
+          L.style.left = ((s.x + e.x) / 2) + "px"; L.style.top = ((s.y + e.y) / 2) + "px";
+          L.classList.toggle("sel", sel); L.style.opacity = dimE ? 0.25 : 1;
+        }
+      });
+    }
+    function rebuild() { fit(); buildCards(); buildEdges(); markSrc(); layout(); }
+    var api = { applyFocus: applyFocus, stars: function () { CARDS.forEach(function (c) { var d = cardEls[c.id]; if (!d) return; var on = state.key.indexOf(c.id) >= 0; d.classList.toggle("key", on); var b = d.querySelector(".star"); if (b) b.setAttribute("aria-pressed", String(on)); }); layout(); }, fit: function () { fit(); }, layout: layout, rebuildEdges: function () { buildEdges(); layout(); }, rebuild: rebuild, markSrc: markSrc, repos: function () {
+      Object.keys(cardEls).forEach(function (k) { var p = state.pos[k]; cardEls[k].style.left = p.x + "px"; cardEls[k].style.top = p.y + "px"; }); layout(); } };
+    boards.push(api); return api;
+  }
+
+  var work, resultBoard;
+
+  function toggleKey(id) {
+    var i = state.key.indexOf(id);
+    if (i >= 0) state.key.splice(i, 1);
+    else if (state.key.length < NKEY) state.key.push(id);
+    else { $("hint").textContent = "Ihr habt schon " + NKEY + " Karten mit ★ markiert. Nehmt zuerst bei einer Karte die Markierung weg."; return; }
+    save(); work.stars(); updateCounts();
+  }
+  function refreshAll(onlyLayout) {
+    if (!onlyLayout) { work.rebuildEdges(); }
+    else { work.layout(); }
+    updateCounts();
+  }
+
+  // ---------- Beziehungs-Editor ----------
+  function curEdge() { return state.edges.filter(function (g) { return g.id === selEdge; })[0]; }
+  function openEditor() {
+    var g = curEdge(); if (!g) { $("editor").hidden = true; return; }
+    $("editor").hidden = false;
+    $("edTitle").textContent = "„" + cardById[g.a].h + "“ → „" + cardById[g.b].h + "“";
+    $("edText").value = g.label;
+    work.layout();
+  }
+  function setLabel(v) { var g = curEdge(); if (!g) return; g.label = v.slice(0, 40); save(); refreshAll(false); }
+  function closeEditor() { selEdge = null; $("editor").hidden = true; refreshAll(false); }
+
+  // ---------- Zähler, Hinweise ----------
+  function names() { return state.names.map(function (n) { return n.trim(); }).filter(Boolean); }
+  function updateCounts() {
+    var n = state.edges.length, lab = state.edges.filter(function (g) { return g.label.trim(); }).length;
+    $("counter").textContent = n + " Pfeile · " + lab + " beschriftet";
+    var items = [
+      [names().length > 0, "Mindestens ein Name ist eingetragen"],
+      [n >= MIN_EDGES, "Mindestens " + MIN_EDGES + " Pfeile gezeichnet (" + n + ")"],
+      [lab >= MIN_LABELED, "Mindestens " + MIN_LABELED + " Pfeile beschriftet (" + lab + ")"],
+      [state.key.length === NKEY, "Genau " + NKEY + " Karten mit ★ markiert (" + state.key.length + ")"],
+      [state.weigh.trim().length >= MIN_WEIGH, "Gewichtung begründet (" + state.weigh.trim().length + " von " + MIN_WEIGH + " Zeichen)"],
+      [state.answer.trim().length >= MIN_ANSWER, "Beurteilung mit mindestens drei Sätzen (" + state.answer.trim().length + " von " + MIN_ANSWER + " Zeichen)"]
+    ];
+    var ul = $("check"); ul.innerHTML = "";
+    var ok = true; items.forEach(function (it) { var li = el("li", it[0] ? "ok" : "", it[1]); ul.appendChild(li); if (!it[0]) ok = false; });
+    $("finish").disabled = !ok;
+    $("finishHint").textContent = ok ? "Alles erfüllt. Ihr könnt die Ergebnisseite öffnen." : "Erst wenn alle Punkte erfüllt sind, geht es weiter.";
+  }
+  function hint() {
+    var h = $("hint");
+    if (mode === "move") h.textContent = "Zieht die Karten mit Finger oder Maus. Ordnet sie so, dass Zusammengehöriges nah beieinander liegt.";
+    else if (!linkSrc) h.textContent = "Tippt zuerst die Karte an, von der der Pfeil ausgehen soll.";
+    else h.textContent = "Tippt jetzt die Karte an, auf die der Pfeil zeigt. Die Karte „" + cardById[linkSrc].h + "“ ist ausgewählt.";
+  }
+  function setMode(m) {
+    mode = m; linkSrc = null; $("boardOuter").classList.toggle("linking", m === "link");
+    $("modeMove").setAttribute("aria-pressed", String(m === "move")); $("modeLink").setAttribute("aria-pressed", String(m === "link"));
+    work.markSrc(); hint();
+  }
+
+  // ---------- Ergebnisseite ----------
+  function showResult() {
+    $("rNames").textContent = names().join(", ");
+    $("rEdges").textContent = state.edges.length + " (davon " + state.edges.filter(function (g) { return g.label.trim(); }).length + " beschriftet)";
+    $("rAnswer").textContent = state.answer.trim();
+    $("rWeigh").textContent = state.key.map(function (id) { return "★ " + cardById[id].h; }).join("\n") + "\n\n" + state.weigh.trim();
+    $("rStamp").textContent = "Erstellt am " + new Date().toLocaleString("de-DE", { dateStyle: "long", timeStyle: "short" });
+    $("editView").hidden = true; $("resultView").hidden = false;
+    resultBoard.rebuild(); window.scrollTo(0, 0);
+  }
+
+  function resetAll() {
+    state = freshState(); selEdge = null; linkSrc = null; $("editor").hidden = true;
+    for (var i = 0; i < 4; i++) $("n" + (i + 1)).value = ""; $("answer").value = ""; $("weigh").value = "";
+    work.stars();
+    save(); work.repos(); work.rebuildEdges(); work.markSrc(); updateCounts();
+  }
+
+  function init() {
+    state = load() || freshState();
+    work = createBoard($("boardOuter"), true);
+    resultBoard = createBoard($("resultBoardOuter"), false);
+    work.rebuild();
+    for (var i = 0; i < 4; i++) {
+      (function (k) {
+        var inp = $("n" + (k + 1)); inp.value = state.names[k] || "";
+        inp.addEventListener("input", function () { state.names[k] = inp.value; save(); updateCounts(); });
+      })(i);
+    }
+    $("answer").value = state.answer || ""; $("weigh").value = state.weigh || "";
+    $("weigh").addEventListener("input", function () { state.weigh = $("weigh").value; save(); updateCounts(); });
+    $("answer").addEventListener("input", function () { state.answer = $("answer").value; save(); updateCounts(); });
+    CHIPS.forEach(function (c) {
+      var b = el("button", "chip", c); b.type = "button";
+      b.addEventListener("click", function () { $("edText").value = c; setLabel(c); });
+      $("chips").appendChild(b);
+    });
+    $("edText").addEventListener("input", function () { setLabel($("edText").value); });
+    $("edDone").addEventListener("click", closeEditor);
+    $("edFlip").addEventListener("click", function () { var g = curEdge(); if (!g) return; var t = g.a; g.a = g.b; g.b = t; save(); openEditor(); refreshAll(false); });
+    $("edDelete").addEventListener("click", function () {
+      state.edges = state.edges.filter(function (g) { return g.id !== selEdge; }); save(); closeEditor();
+    });
+    $("modeMove").addEventListener("click", function () { setMode("move"); });
+    $("modeLink").addEventListener("click", function () { setMode("link"); });
+    $("shuffle").addEventListener("click", function () { state.pos = gridPositions(true); save(); work.repos(); });
+    var armed = false, rb = $("resetAll");
+    rb.addEventListener("click", function () {
+      if (!armed) { armed = true; rb.textContent = "Wirklich alles löschen?"; setTimeout(function () { armed = false; rb.textContent = "Alles zurücksetzen"; }, 4000); return; }
+      armed = false; rb.textContent = "Alles zurücksetzen"; resetAll();
+    });
+    $("finish").addEventListener("click", showResult);
+    $("back").addEventListener("click", function () { $("resultView").hidden = true; $("editView").hidden = false; work.fit(); work.layout(); });
+    window.addEventListener("resize", function () { work.fit(); if (!$("resultView").hidden) resultBoard.fit(); });
+    setMode("move"); updateCounts();
+    // Positionen nach dem Laden der Schrift neu berechnen
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { work.layout(); });
+  }
+  init();
+})();
+</script>
+
+</body>
+</html>
